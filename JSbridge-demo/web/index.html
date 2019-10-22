@@ -1,0 +1,80 @@
+<DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Document</title>
+	<style>
+		html {
+			font-size: 50px;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="btn">
+			<h3 style="font-size: .5rem">jsBridge通信的两种方式demo</h3>
+			<div class="ipt">
+				<input type="text" id="editText" placeholder="请输入内容">
+			</div>
+			<button id="showBtn1">show Native Dialog(拦截URLSchema)</button>
+			<hr>
+			<button id="showBtn2">show Native Dialog(向webView注入JS api)</button>
+			<hr>
+			<button id="showBtn3">获取Native端内容</button>
+			<hr>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+	let id = 1;
+	const cbMap = {};
+	window.JSSDK = {
+		getWebEditTextValue(cbId){
+			const editText = document.querySelector("#editText");
+			window.NativeBridge.receiveMessage(cbId, editText.value)
+		},
+		// 点击web端按钮，拿到Native输入框内容，并通过回调返回
+		getNativeEditTextValue(cb){
+			const cbId = id++;
+			cbMap[cbId] = cb;
+			// 调用native端getNativeEditTextValue方法，并传入回调ID
+			window.NativeBridge.getNativeEditTextValue(cbId)
+		},
+		receiveMessage(cbId, value){
+			if (cbMap[cbId]) {
+				cbMap[cbId](value)
+			}	
+		}
+	};
+
+	window.showWebDialog = text => alert(text);
+
+	document.addEventListener('DOMContentLoaded', e => {
+		const editText = document.querySelector("#editText");
+		const showBtn1 = document.querySelector("#showBtn1");
+		const showBtn2 = document.querySelector("#showBtn2");
+		showBtn1.addEventListener('click', e => {
+			// const iptValue = editText.value;
+			showNativeDialog('showBtn1', editText.value)
+		});
+		showBtn2.addEventListener('click', e => {
+			showNativeDialog('showBtn2', editText.value)
+		});
+
+		// 获取native端内容
+		showBtn3.addEventListener('click', e => {
+			window.JSSDK.getNativeEditTextValue( value => {alert(`Native输入值：${value}`);});
+		});
+	});
+	function showNativeDialog(showBtn, text){
+		if(showBtn === 'showBtn1'){
+			// 一般是创建iframe元素节点，通过设定src属性发起请求
+			window.alert(`jsBridge://showNativeDialog?text=${text}拦截URLSchema`);
+		}else {
+			window.NativeBridge.showNativeDialog(`${text}    向webView注入JS api`);
+		}
+	}
+</script>
+</html>
